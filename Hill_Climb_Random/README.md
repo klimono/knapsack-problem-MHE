@@ -1,10 +1,6 @@
-WORKING DIRECTORY: $ProjectFileDir$
-PROGRAM ARGUMENTS: X Y
-                   ^ ^
-                   | |_____ALGORITHM ITERATIONS
-                   |
-				   |
-				   |__KNAPSACK CAPACITY
+WORKING DIRECTORY: $ ProjectFileDir $
+PROGRAM ARGUMENTS: <KNAPSACK CAPACITY> <ALGORITHM ITERATIONS>
+                  
 		   
 		   
 1. program odczytuje powyższe wartości jako parametry uruchomienia 
@@ -16,7 +12,7 @@ PROGRAM ARGUMENTS: X Y
 	- jeżeli rozważany przedmiot z poza plecaka może się w nim zmieścić bez koniecznośći zwalniania miejsca, zostaje on dodany do rozwiązania 
 	- jeżeli rozważany przedmiot z poza plecaka nie mieści się w nim, ale ma:
 		wartość większą lub równą rozważanego przedmiotu z plecaka i 
-		wagę mniejszą lub równą rozważanego przedmiotu z plecaka    
+		po zamienieniu z rozważanym przedmiotem z plecaka rozwiązanie nie przekraczałoby pojemności  
 	przedmioty zostają ze sobą zamienione.
-	
+
 	W każdym przypadku zmian program informuje o tym.
