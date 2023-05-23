@@ -20,7 +20,7 @@ int computeValue(const std::vector<Item>& solution) {
     return value;
 }
 
-// Funkcja obliczająca wartość rozwiązania (suma wartości przedmiotów)
+// Funkcja obliczająca wartość rozwiązania (suma wag przedmiotów)
 int computeWeight(const std::vector<Item>& solution) {
     int weight = 0;
     for (const auto &item: solution) {
@@ -87,23 +87,30 @@ std::vector<Item> hillClimbingKnapsack(const std::vector<Item>& items, int capac
 
         std::vector<Item> testingSolution = currentSolution;
         improved = false;
-        // Wygeneruj sąsiednie rozwiązania przez zamianę przedmiotów i sprawdź czy jest lepsze
+
+        // Wygeneruj sąsiednie rozwiązania przez zamianę/dodanie przedmiotów i sprawdź czy jest lepsze
         bool checked = 1;
         while(checked){
             int i = random(0, currentSolution.size()-1);
             int j = random(0, testingSolution.size()-1);
             if (currentSolution[i].in_backpack == 1
                 && testingSolution[j].in_backpack == 0){
+
+                //w testowym rozwiazaniu obiekt zostaje dodany
                 testingSolution[j].in_backpack = 1;
-                if (computeWeight(testingSolution) <= capacity && computeValue(testingSolution) > computeValue(currentSolution)){
+
+                //jezeli rozwiazanie testowe po dodaniu przedmiotu nie przekracza limitu pojemnosci, rozwiazanie zostaje
+                if (computeWeight(testingSolution) <= capacity){ //&& computeValue(testingSolution) >= computeValue(currentSolution)){
                     checked = 0;
                     currentSolution = testingSolution;
                     improved = true;
-                    std::cout<<"\n IMPROVEDDODANO OBIEKT #" << j;
+                    std::cout<<"\nIMPROVED! DODANO OBIEKT #" << j;
 
+                //jezeli rozwiazanie testowowe po dodaniu przedmiotu przekracza limit pojemnosci
                 } else if (computeWeight(testingSolution) > capacity){
                     testingSolution[i].in_backpack = 0;
-                    if(computeWeight(testingSolution) <= capacity && computeValue(testingSolution) > computeValue(currentSolution)){
+                    //wstedy sprawdzam czy po zamianie przedmiotow pojemnosc dalej jest ok, jak tak to biore to rozwiazanie
+                    if(computeWeight(testingSolution) <= capacity && computeValue(testingSolution) >= computeValue(currentSolution)){
                         checked = 0;
                         currentSolution = testingSolution;
                         improved = true;
@@ -113,7 +120,6 @@ std::vector<Item> hillClimbingKnapsack(const std::vector<Item>& items, int capac
                 checked = 0;
             }
         }
-
     }
 
     return currentSolution;
@@ -122,7 +128,7 @@ std::vector<Item> hillClimbingKnapsack(const std::vector<Item>& items, int capac
 int main(int argc, char* argv[]){
     srand((unsigned)time(NULL));
 
-    //deklaracja pojemnosci plecaka
+    //deklaracja pojemnosci plecaka aktualnie pobierana z parametrów wywołania
     int capacity = 15;
 
     //deklaracja wektora przedmiotow
@@ -151,7 +157,7 @@ int main(int argc, char* argv[]){
 
 
 
-    //deklaracja ilosci iteracji algorytmu
+    //deklaracja ilosci iteracji algorytmu aktualnie pobierana z parametrów wywołania
     int iterations = 20;
 
 
