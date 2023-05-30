@@ -128,8 +128,8 @@ tabuList generateNeighbors(tabuSolution &solution, vec2d &items, int capacity){
             //czy losowi sasiedzi powinni uwzgledniac tez dodanie przedmiotu jezeli bedzie to korzystne?
             //inaczej liczba przedmiotów w plecaku będzie stała względem ilości w rozwiazaniu wygenerowanym losowo
 
+            temp[item_to_switch] = 0;
             if (calculateKnapsack(items, temp, capacity) != 0) {
-                temp[item_to_switch] = 0;
                 neighboursSolutions.push_back(temp);
             }
 
