@@ -206,11 +206,16 @@ tabuSolution tabuSearch(vec2d &items, int capacity, int iterations, int tabuList
         currentSolution = nextSolution;
         currentFitness = nextFitness;
         if (currentFitness > bestFitness) {
+            std::cout << "Zmierzam do optimum, rozwiazanie w " << iter << " iteracji: ";
+        }
             bestSolution = currentSolution;
             bestFitness = currentFitness;
 
-            std::cout<<"Rozwiazanie w " << iter << " iteracji: ";
+        if (currentFitness <= bestFitness) {
 
+
+            std::cout << "Wychodze z optimum, rozwiazanie w " << iter << " iteracji: ";
+        }
             for(int i = 0; i<bestSolution.size(); i++){
                 if(bestSolution[i] == 1){
                     std::cout<<i<<" ";
@@ -219,7 +224,7 @@ tabuSolution tabuSearch(vec2d &items, int capacity, int iterations, int tabuList
 
             std::cout<<"\ntotal weight: " << computeWeight(bestSolution, items)
                      << " total value: " << computeValue(bestSolution, items) <<"\n\n";
-        }
+
 
         //dodaj rozwiazanie do tabu
         tabu_list.push_back(currentSolution);
