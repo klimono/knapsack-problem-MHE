@@ -16,6 +16,9 @@ using vec2d = std::vector<Item>;
 using tabuSolution = std::vector<bool>;
 using tabuList = std::vector<tabuSolution>;
 
+//deklaracja wektora przechowujacego optimum globalne
+tabuSolution globalOptimum ;
+
 //generator liczb losowych na scope (X-Y)
 int random(int min, int max){
     if (min > max){
@@ -158,12 +161,15 @@ bool notInTabu(tabuSolution &solution, tabuList &list){
 }
 
 // glowna funkcja tabu
-tabuSolution tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize) {
+void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize) {
     //utworzenie losowego rozwiazania poczatkowego
     tabuSolution currentSolution = generateRandomSolution(items, capacity);
 
     //deklaracja wektora przechowujacego najlepsze rozwiazanie
     tabuSolution bestSolution = currentSolution;
+
+    //przypisanie wartosci podstawowej do optimum globalnego
+    globalOptimum = currentSolution;
 
     //zliczenie wartości poczatkowego plecaka losowego
     int currentFitness = calculateKnapsack(items, currentSolution, capacity);
@@ -205,16 +211,16 @@ tabuSolution tabuSearch(vec2d &items, int capacity, int iterations, int tabuList
         //przypisz i wypisz rozwiazanie jezeli jest ono lepsze
         currentSolution = nextSolution;
         currentFitness = nextFitness;
+
+        //zmierzanie do optimum
         if (currentFitness > bestFitness) {
-            std::cout << "Zmierzam do optimum, rozwiazanie w " << iter << " iteracji: ";
+            std::cout << "\nZmierzam do optimum, rozwiazanie w " << iter << " iteracji: ";
         }
-            bestSolution = currentSolution;
-            bestFitness = currentFitness;
 
+
+        //wyjscie z optimum
         if (currentFitness <= bestFitness) {
-
-
-            std::cout << "Wychodze z optimum, rozwiazanie w " << iter << " iteracji: ";
+            std::cout << "\nWychodze z optimum, rozwiazanie w " << iter << " iteracji: ";
         }
             for(int i = 0; i<bestSolution.size(); i++){
                 if(bestSolution[i] == 1){
@@ -222,9 +228,18 @@ tabuSolution tabuSearch(vec2d &items, int capacity, int iterations, int tabuList
                 }
             }
 
-            std::cout<<"\ntotal weight: " << computeWeight(bestSolution, items)
+        bestSolution = currentSolution;
+        bestFitness = currentFitness;
+
+        std::cout<<"\ntotal weight: " << computeWeight(bestSolution, items)
                      << " total value: " << computeValue(bestSolution, items) <<"\n\n";
 
+
+        //rejestruj najlepsze dotychczasowe rozwiazanie do optimum globalnego
+        int globalFitness = calculateKnapsack(items, globalOptimum, capacity);
+        if (bestFitness > globalFitness){
+            globalOptimum = bestSolution;
+        }
 
         //dodaj rozwiazanie do tabu
         tabu_list.push_back(currentSolution);
@@ -234,7 +249,7 @@ tabuSolution tabuSearch(vec2d &items, int capacity, int iterations, int tabuList
             tabu_list.clear();
         }
     }
-    return bestSolution;
+    
 }
 
 int main(int argc, char* argv[]){
@@ -286,16 +301,16 @@ int main(int argc, char* argv[]){
 
 
     //deklaracja i wywolanie wektora rozwiazania
-    tabuSolution solution = tabuSearch(items, capacity, iterations, tabuSize);
+    tabuSearch(items, capacity, iterations, tabuSize);
 
     std::cout << "Wynik: ";
-    for (int i = 0; i < solution.size(); ++i) {
-        if (solution[i]) {
-            std::cout << i + 1 << " ";
+    for (int i = 0; i < globalOptimum.size(); i++) {
+        if (globalOptimum[i] == 1) {
+            std::cout << i << " ";
         }
     }
-    std::cout<<"\ntotal weight: " << computeWeight(solution, items)
-             << " total value: " << computeValue(solution, items) <<"\n\n";
+    std::cout<<"\ntotal weight: " << computeWeight(globalOptimum, items)
+             << " total value: " << computeValue(globalOptimum, items) <<"\n\n";
 
     std::cout << "\n";
 

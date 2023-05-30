@@ -11,3 +11,5 @@ PROGRAM ARGUMENTS: KNAPSACK_CAPACITY ALGORITHM_ITERATIONS TABU_SIZE
 	- program generuje liste wszystkich sasiadów dla obecnego rozwiazania
 	- program oblicza wartosc wszyskich sąsiadów i wybiera najlepszego SPRADZAJĄC CZY TEN NIE ZNAJDUJE SIĘ W TABU, którego rozwiązanie miesci się w plecaku
 	- jeżeli takie rozwiązanie istnieje, zostaje przypisane jako aktualne oraz jest dodawane na listę rozwiązań tabu
+	- program informuje o zmierzaniu lub wychodzeniu z optimum
+	- program zapamietuje najlepsze rozwiązanie które mieało miejsce jako optimum globalne
