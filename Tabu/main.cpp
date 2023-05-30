@@ -17,7 +17,10 @@ using tabuSolution = std::vector<bool>;
 using tabuList = std::vector<tabuSolution>;
 
 //deklaracja wektora przechowujacego optimum globalne
-tabuSolution globalOptimum ;
+tabuSolution globalOptimum;
+
+//deklaracja ostatniego punktu z którego można było kontynuować obliczenia
+tabuSolution lastPoint;
 
 //generator liczb losowych na scope (X-Y)
 int random(int min, int max){
@@ -128,12 +131,14 @@ tabuList generateNeighbors(tabuSolution &solution, vec2d &items, int capacity){
             //czy losowi sasiedzi powinni uwzgledniac tez dodanie przedmiotu jezeli bedzie to korzystne?
             //inaczej liczba przedmiotów w plecaku będzie stała względem ilości w rozwiazaniu wygenerowanym losowo
 
+            /*
             temp[item_to_switch] = 0;
             if (calculateKnapsack(items, temp, capacity) != 0) {
                 neighboursSolutions.push_back(temp);
             }
+             */
 
-            /*
+
             if (calculateKnapsack(items, temp, capacity) != 0) {
                 neighboursSolutions.push_back(temp);
             }
@@ -143,7 +148,7 @@ tabuList generateNeighbors(tabuSolution &solution, vec2d &items, int capacity){
                 temp[item_to_switch] = 0;
                 neighboursSolutions.push_back(temp);
             }
-             */
+
 
 
 
@@ -185,6 +190,10 @@ void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize) {
 
     //glowna petla
     for (int iter = 0; iter < iterations; ++iter) {
+        //deklaracja zmiennej przechowującej ilość dostępnych ruchów
+        //potrzebne do zapisania ostatnie punktu z którego można było wykonywać obliczenia
+        int moves = 0;
+
         //wygenerowanie listy sasiedztwa do listy tabu
         tabuList neighbors = generateNeighbors(currentSolution, items, capacity);
 
@@ -192,64 +201,83 @@ void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize) {
         tabuSolution nextSolution;
         int nextFitness = 0;
 
+
         //sprawdzenie rozwiazan sasiedztwa
-        for (auto& neighbor : neighbors) {
+        for (auto &neighbor: neighbors) {
 
             //oblcizanie wartosci kazdego sasiada
             int neighborFitness = calculateKnapsack(items, neighbor, capacity);
+            if (notInTabu(neighbor, tabu_list)) {
+                moves++;
+            }
 
-            //znajdz najlepsze rozwiązanie i sprawdz czy nie jest w tabu
+
+            //znajdz najlepsze rozwiązanie z sasiedztwa i sprawdz czy nie jest w tabu
             if (neighborFitness > nextFitness && notInTabu(neighbor, tabu_list)) {
+
                 nextSolution = neighbor;
                 nextFitness = neighborFitness;
 
             }
+            if (moves >= 2) {
+                lastPoint = currentSolution;
+            }
+        }
+
+        //jezeli nie ma wyjsc, cofnij do ostatniego punktu w którym mozna było kontynuować
+        if (moves == 0) {
+            //auto it = find(tabu_list.begin(), tabu_list.end(), lastPoint);
+            // tabu_list.erase(it);
+            std::cout << "\n COFNIETO SIE DO OSTATNIEGO PUNKTU\n";
+            currentSolution = lastPoint;
+            nextFitness = computeValue(currentSolution, items);
         }
 
         //przerwanie petli w sytuacji w ktorej realne najlepsze sasiedztwo nie istnieje
-        if (nextFitness == 0) {
-            break;
-        }
+        if (nextFitness != 0) {
+            //przypisz i wypisz rozwiazanie jezeli jest ono lepsze
+            currentSolution = nextSolution;
+            currentFitness = nextFitness;
 
-        //przypisz i wypisz rozwiazanie jezeli jest ono lepsze
-        currentSolution = nextSolution;
-        currentFitness = nextFitness;
+            std::cout << "\n current fitness: " << currentFitness << " best fitness: " << bestFitness << " iteration: "
+                      << iter << "\n";
 
-        //zmierzanie do optimum
-        if (currentFitness > bestFitness) {
-            std::cout << "\nZmierzam do optimum, rozwiazanie w " << iter << " iteracji: ";
-        }
+            //zmierzanie do optimum
+            if (currentFitness > bestFitness) {
+                std::cout << "\nZmierzam do optimum, rozwiazanie w " << iter << " iteracji: ";
+            }
 
-
-        //wyjscie z optimum
-        if (currentFitness <= bestFitness) {
-            std::cout << "\nWychodze z optimum, rozwiazanie w " << iter << " iteracji: ";
-        }
-            for(int i = 0; i<bestSolution.size(); i++){
-                if(bestSolution[i] == 1){
-                    std::cout<<i<<" ";
+            //wyjscie z optimum
+            if (currentFitness <= bestFitness) {
+                std::cout << "\nWychodze z optimum, rozwiazanie w " << iter << " iteracji: ";
+            }
+            for (int i = 0; i < bestSolution.size(); i++) {
+                if (bestSolution[i] == 1) {
+                    std::cout << i << " ";
                 }
             }
 
-        bestSolution = currentSolution;
-        bestFitness = currentFitness;
+            bestSolution = currentSolution;
+            bestFitness = currentFitness;
 
-        std::cout<<"\ntotal weight: " << computeWeight(bestSolution, items)
-                     << " total value: " << computeValue(bestSolution, items) <<"\n\n";
+            std::cout << "\ntotal weight: " << computeWeight(bestSolution, items)
+                      << " total value: " << computeValue(bestSolution, items) << "\n\n";
 
 
-        //rejestruj najlepsze dotychczasowe rozwiazanie do optimum globalnego
-        int globalFitness = calculateKnapsack(items, globalOptimum, capacity);
-        if (bestFitness > globalFitness){
-            globalOptimum = bestSolution;
-        }
+            //rejestruj najlepsze dotychczasowe rozwiazanie do optimum globalnego
+            int globalFitness = calculateKnapsack(items, globalOptimum, capacity);
+            if (bestFitness > globalFitness) {
+                globalOptimum = bestSolution;
+            }
 
-        //dodaj rozwiazanie do tabu
-        tabu_list.push_back(currentSolution);
+            //dodaj rozwiazanie do tabu
+            tabu_list.push_back(currentSolution);
 
-        //wyczysc liste tabu jezeli jest ona za duza
-        if (tabu_list.size() > tabuListSize) {
-            tabu_list.clear();
+
+            //wyczysc liste tabu jezeli jest ona za duza
+            if (tabu_list.size() > tabuListSize) {
+                tabu_list.clear();
+            }
         }
     }
 
