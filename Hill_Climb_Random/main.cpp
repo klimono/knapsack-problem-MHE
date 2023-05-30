@@ -11,19 +11,21 @@ struct Item {
     bool in_backpack = 0;
 };
 
+using vec2d = std::vector<Item>;
+
 // Funkcja obliczająca wartość rozwiązania (suma wartości przedmiotów)
-int computeValue(const std::vector<Item>& solution) {
+int computeValue(vec2d &solution) {
     int value = 0;
-    for (const auto &item: solution) {
+    for (auto &item: solution) {
         if(item.in_backpack == 1) value += item.value;
     }
     return value;
 }
 
 // Funkcja obliczająca wartość rozwiązania (suma wag przedmiotów)
-int computeWeight(const std::vector<Item>& solution) {
+int computeWeight(vec2d &solution) {
     int weight = 0;
-    for (const auto &item: solution) {
+    for (auto &item: solution) {
         if(item.in_backpack == 1) weight += item.weight;
     }
     return weight;
@@ -41,84 +43,89 @@ int random(int min, int max){
     return num;
 }
 
-std::vector<Item> generateRandomSolution(const std::vector<Item>& items, int capacity) {
+//generator losowego rozwiazania poczatkowego
+vec2d generateRandomSolution(vec2d &items, int capacity) {
     std::vector<Item> solution = items;
 
+    std::cout << "Losowe rozwiazanie poczatkowe: ";
     for (int i = 0; i < items.size(); i++){
         int j = random(0, items.size()-1);
-       // std::cout<<j<<" "<<solution[j].in_backpack<<" "<< capacity<< " \n";
-
         if (solution[j].weight <= capacity && solution[j].in_backpack == 0) {
             solution[j].in_backpack = 1;
             capacity -= items[j].weight;
         }
     }
+    for (int i = 0; i < items.size(); i++){
+        if(solution[i].in_backpack == 1){
+            std::cout<<i<<" ";
+        }
+    }
+    std::cout<<"\ntotal weight: " << computeWeight(solution)
+             << " total value: " << computeValue( solution) <<"\n\n";
     return solution;
 }
 
-std::vector<Item> hillClimbingKnapsack(const std::vector<Item>& items, int capacity, int max_iterations) {
-    // Wygeneruj losowe rozwiązanie początkowe
-    std::vector<Item> currentSolution = generateRandomSolution(items, capacity);
-    std::cout << "\nPoczatkowe rozwiazanie losowe \nID# (waga, wartosc) czy spakowane \n";
-    int cout = 0;
-    for (const auto& item : currentSolution) {
-        std::cout << cout <<"# (" << item.weight << ", " << item.value << ") " << item.in_backpack << "\n";
-        cout++;
-    }
-    std::cout << "Waga: " << computeWeight(currentSolution) << " wartosc: " << computeValue(currentSolution) << "\n";
+vec2d generateNeighbour(vec2d &items, int capacity){
+    vec2d neighbour = items;
+    int selected_item = 0;
+    int switching_item = 0;
+    int j = 0;
 
+    //wybranie przedmiotu startowego
 
-    bool improved = false;
-    int iteration = 0;
-    while (iteration!=max_iterations) {
-        iteration++;
-        if (improved) {
-
-            std::cout << "\nW " << iteration << " iteracji hillClimbing \n(waga, wartosc) czy spakowane \n";
-            int cout = 0;
-            for (const auto &item: currentSolution) {
-                std::cout << cout <<"# (" << item.weight << ", " << item.value << ") " << item.in_backpack << "\n";
-                cout++;
-            }
-            std::cout << "Waga: " << computeWeight(currentSolution) << " wartosc: " << computeValue(currentSolution)
-                      << "\n";
-
+    while(selected_item == 0){
+        j = random(0, items.size()-1);
+        //std::cout<<items[j].in_backpack;
+        if(items[j].in_backpack == 1){
+            selected_item = j;
         }
+    }
+    //wybranie przedmiotu do zamiany
+    while(switching_item == 0){
+        j = random(0, items.size()-1);
+        if(items[j].in_backpack == 0){
+            switching_item = j;
+        }
+    }
 
-        std::vector<Item> testingSolution = currentSolution;
-        improved = false;
+    //sprawdzenie dodania przedmiotu
+    neighbour[switching_item].in_backpack = 1;
+    if(computeWeight(neighbour) <= capacity){
+        return neighbour;
+    }
 
-        // Wygeneruj sąsiednie rozwiązania przez zamianę/dodanie przedmiotów i sprawdź czy jest lepsze
-        bool checked = 1;
-        while(checked){
-            int i = random(0, currentSolution.size()-1);
-            int j = random(0, testingSolution.size()-1);
-            if (currentSolution[i].in_backpack == 1
-                && testingSolution[j].in_backpack == 0){
+    //sprawdzenie zamiany przedmiotów
+    neighbour[selected_item].in_backpack = 0;
+    if(computeWeight(neighbour) <= capacity){
+        return neighbour;
+    }
+    return items;
+}
 
-                //w testowym rozwiazaniu obiekt zostaje dodany
-                testingSolution[j].in_backpack = 1;
+vec2d hillClimbingKnapsack(vec2d &items, int capacity, int max_iterations){
+    //wygeneruj losowe rozwiazanie poczatkowe
+    vec2d currentSolution = generateRandomSolution(items, capacity);
 
-                //jezeli rozwiazanie testowe po dodaniu przedmiotu nie przekracza limitu pojemnosci, rozwiazanie zostaje
-                if (computeWeight(testingSolution) <= capacity){ //&& computeValue(testingSolution) >= computeValue(currentSolution)){
-                    checked = 0;
-                    currentSolution = testingSolution;
-                    improved = true;
-                    std::cout<<"\nIMPROVED! DODANO OBIEKT #" << j;
+    //glowna petla
+    for(int iters = 0; iters < max_iterations; iters++){
 
-                //jezeli rozwiazanie testowowe po dodaniu przedmiotu przekracza limit pojemnosci
-                } else if (computeWeight(testingSolution) > capacity){
-                    testingSolution[i].in_backpack = 0;
-                    //wstedy sprawdzam czy po zamianie przedmiotow pojemnosc dalej jest ok, jak tak to biore to rozwiazanie
-                    if(computeWeight(testingSolution) <= capacity && computeValue(testingSolution) >= computeValue(currentSolution)){
-                        checked = 0;
-                        currentSolution = testingSolution;
-                        improved = true;
-                        std::cout<<"\nIMPROVED! ZAMIENIONO OBIEKT #" << i << " Z OBIEKTEM #" << j;
-                    }
+
+        vec2d nextSolution = generateNeighbour(currentSolution, capacity);
+
+        int currentFitness = computeValue(currentSolution);
+        int nextFitness = computeValue(nextSolution);
+
+        if(nextFitness > currentFitness){
+            currentSolution = nextSolution;
+            std::cout<<"\nImproved! \n w " << iters << " iteracji programu";
+            std::cout<<"\nAktualne rozwiazanie: ";
+            for (int i = 0; i < currentSolution.size(); i++){
+                if(currentSolution[i].in_backpack == 1){
+                    std::cout<<i<<" ";
                 }
-                checked = 0;
             }
+            std::cout<<"\ntotal weight: " << computeWeight(currentSolution)
+                     << " total value: " << computeValue( currentSolution) <<"\n\n";
         }
     }
 
@@ -127,10 +134,6 @@ std::vector<Item> hillClimbingKnapsack(const std::vector<Item>& items, int capac
 
 int main(int argc, char* argv[]){
     srand((unsigned)time(NULL));
-
-    //deklaracja pojemnosci plecaka aktualnie pobierana z parametrów wywołania
-    int capacity = 15;
-
     //deklaracja wektora przedmiotow
     std::vector<Item> items;
 
@@ -151,38 +154,21 @@ int main(int argc, char* argv[]){
         items.push_back({w, v});
     }
 
-
     file_w.close();
     file_v.close();
+    if(argc == 3) {
+        int capacity = std::stoi(argv[1]);
+        int iterations = std::stoi(argv[2]);
 
-
-
-    //deklaracja ilosci iteracji algorytmu aktualnie pobierana z parametrów wywołania
-    int iterations = 20;
-
-
-    /*
-    std::cout << "Podaj pojemnosc plecaka";
-    std::cin >> capacity;
-    std::cout << "Podaj ilosc iteracji algorytmu wspinaczkowego: ";
-    std::cin >> iterations;
-*/
-    if(argc == 3){
-        int count = 0;
-        capacity = std::stoi(argv[1]);
-        iterations = std::stoi(argv[2]);
-        std::cout << "Wielkosc plecaka: " << capacity << " ilosc iteracji algorytmu: " << iterations;
-        std::cout << "\nPlecak poczatkowy \n(waga, wartosc) czy spakowane \n";
-        for (const auto& item : items) {
-            std::cout<< count <<"# (" << item.weight << ", " << item.value << ") " << item.in_backpack << "\n";
-            count++;
+        std::cout << "Wielkosc plecaka: " << capacity << " ilosc iteracji algorytmu: "
+                  << iterations;
+        std::cout << "\nPlecak poczatkowy \n(waga, wartosc)\n";
+        for (int i = 0; i < items.size(); i++) {
+            std::cout << i << "# (" << items[i].weight << ", " << items[i].value << ") " << "\n";
         }
+        vec2d solution = hillClimbingKnapsack(items, capacity, iterations);
 
     }else{
-        std::cout<<"NIEPRAWIDLOWE PARAMETRY WEJSCIA";
-        return 0;
+        std::cout<<"NIEPRAWIDŁOWE PARAMETRY WEJŚCIA";
     }
-
-    std::vector<Item> solution = hillClimbingKnapsack(items, capacity, iterations);
-
 }
