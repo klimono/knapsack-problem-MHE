@@ -128,19 +128,22 @@ tabuList generateNeighbors(tabuSolution &solution, vec2d &items, int capacity){
             //czy losowi sasiedzi powinni uwzgledniac tez dodanie przedmiotu jezeli bedzie to korzystne?
             //inaczej liczba przedmiotów w plecaku będzie stała względem ilości w rozwiazaniu wygenerowanym losowo
 
+            if (calculateKnapsack(items, temp, capacity) != 0) {
+                temp[item_to_switch] = 0;
+                neighboursSolutions.push_back(temp);
+            }
+
             /*
-            temp[item_to_switch] = 0;
-             tabu.push_back(temp);
-            */
-
-
             if (calculateKnapsack(items, temp, capacity) != 0) {
                 neighboursSolutions.push_back(temp);
-            } else {
+            }
+
+            else {
 
                 temp[item_to_switch] = 0;
                 neighboursSolutions.push_back(temp);
             }
+             */
 
 
 
@@ -249,7 +252,7 @@ void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize) {
             tabu_list.clear();
         }
     }
-    
+
 }
 
 int main(int argc, char* argv[]){
