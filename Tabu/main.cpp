@@ -16,6 +16,8 @@ using vec2d = std::vector<Item>;
 using tabuSolution = std::vector<bool>;
 using tabuList = std::vector<tabuSolution>;
 
+int previousPoint = -1;
+
 //deklaracja wektora przechowujacego optimum globalne
 tabuSolution globalOptimum;
 
@@ -116,7 +118,8 @@ tabuList generateNeighbors(tabuSolution &solution, vec2d &items, int capacity){
     //wybranie losowego przedmiotu znajdujacego sie w plecaku
     while(item_to_switch == 0){
         int i = random(0, solution.size()-1);
-        if (solution[i] == 1){
+        if (solution[i] == 1 && i!= previousPoint){
+            previousPoint = i;
             item_to_switch = i;
         }
     }
@@ -139,19 +142,15 @@ tabuList generateNeighbors(tabuSolution &solution, vec2d &items, int capacity){
              */
 
 
-            if (calculateKnapsack(items, temp, capacity) != 0) {
+            if (computeWeight(temp, items) <= capacity) {
                 neighboursSolutions.push_back(temp);
             }
 
-            else {
-
+            else{
                 temp[item_to_switch] = 0;
-                neighboursSolutions.push_back(temp);
+                    neighboursSolutions.push_back(temp);
+
             }
-
-
-
-
         }
     }
 
@@ -239,8 +238,8 @@ void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize) {
             currentSolution = nextSolution;
             currentFitness = nextFitness;
 
-            std::cout << "\n current fitness: " << currentFitness << " best fitness: " << bestFitness << " iteration: "
-                      << iter << "\n";
+            std::cout << "\ncurrent fitness: " << currentFitness << " best fitness: " << bestFitness << " iteration: "
+                      << iter;
 
             //zmierzanie do optimum
             if (currentFitness > bestFitness) {
