@@ -7,22 +7,21 @@
 
 
 struct Item {
-    int value;
     int weight;
-    bool in_backpack = 0;
+    int value;
 };
 
 using vec2d = std::vector<Item>;
-using tabuSolution = std::vector<bool>;
-using tabuList = std::vector<tabuSolution>;
+using Solution = std::vector<bool>;
+using SolutionList = std::vector<Solution>;
+using MovesList = std::vector<int>;
 
-int previousPoint = -1;
-
-//deklaracja wektora przechowujacego optimum globalne
-tabuSolution globalOptimum;
-
-//deklaracja ostatniego punktu z którego można było kontynuować obliczenia
-tabuSolution lastPoint;
+//optimum globalne
+Solution globalOptimum;
+//ostatni punkt z którego można wykonywać obliczenia
+Solution lastPoint;
+//ostatni rozwazany indeks
+int lastWorkPoint = -1;
 
 //generator liczb losowych na scope (X-Y)
 int random(int min, int max){
@@ -36,254 +35,213 @@ int random(int min, int max){
     return num;
 }
 
-//funkcja sprawdzajaca poprawnosc plecaka i zwracajaca jego wartosc
-int calculateKnapsack(vec2d items, tabuSolution &solution, int capacity) {
+//oblicz wartość plecaka
+int calculateValue(vec2d &items, Solution &solution){
     int value = 0;
-    int weight = 0;
-
-    for (int i = 0; i < solution.size(); ++i) {
-        if (solution[i] == 1) {
-            value += items[i].value;
-            weight += items[i].weight;
-        }
-    }
-
-    // blad, przedmioty nie mieszcza sie w plecaku
-    if (weight > capacity) {
-        return 0;
-    }
-
-    return value;
-}
-
-
-// Funkcja obliczająca wartość rozwiązania (suma wartości przedmiotów)
-int computeValue(tabuSolution &solution, vec2d &items) {
-    int value = 0;
-    for(int i = 0; i<solution.size(); i++){
-        if(solution[i]==1){
+    for(int i = 0; i < solution.size(); i++){
+        if(solution[i] == 1){
             value += items[i].value;
         }
     }
     return value;
 }
 
-// Funkcja obliczająca wartość rozwiązania (suma wag przedmiotów)
-int computeWeight(tabuSolution &solution, vec2d &items) {
+//oblicz wage plecaka
+int calculateWeight(vec2d &items, Solution &solution){
     int weight = 0;
     for(int i = 0; i<solution.size(); i++){
-        if(solution[i]==1){
+        if(solution[i] == 1){
             weight += items[i].weight;
         }
     }
     return weight;
 }
 
-//utworzenie losowego rozwiazania
-tabuSolution generateRandomSolution(vec2d &items, int capacity){
-    vec2d solution = items;
-    tabuSolution result;
+//generuj losowe rozwiązanie
+Solution generateRandomSolution(vec2d &items, int capacity){
+    int weight = 0;
+    Solution randomSolution;
+    for(int i = 0; i < items.size(); i++){
+        randomSolution.push_back(0);
+    }
 
-    for (int i = 0; i < items.size(); i++){
-        int j = random(0, items.size()-1);
-
-        if(solution[j].in_backpack == 0){
-            if (solution[j].weight <= capacity) {
-                solution[j].in_backpack = 1;
-                capacity -= items[j].weight;
-            }
-        }else i--;
+    for(int i = 0; i < items.size();){
+        int rand = random(0, items.size()-1);
+        if(randomSolution[rand] == 0){
+               i++;
+               if(weight + items[rand].weight < capacity){
+                   randomSolution[rand] = 1;
+                   weight += items[rand].weight;
+               }
+        }
     }
 
     std::cout << "Losowe rozwiazanie poczatkowe: ";
-    for(int i = 0; i<solution.size(); i++){
-        result.push_back(solution[i].in_backpack);
-        if(solution[i].in_backpack == 1){
-            std::cout<<i<<" ";
-        }
+    for(int i = 0; i<randomSolution.size(); i++){
+        if(randomSolution[i] == 1) std::cout<<i<<" ";
     }
 
-    std::cout<<"\ntotal weight: " << computeWeight(result, items)
-             << " total value: " << computeValue(result, items) <<"\n\n";
-    return result;
+    std::cout<<"\ntotal weight: " << calculateWeight(items, randomSolution)
+             << " total value: " << calculateValue(items, randomSolution) <<"";
+
+    return randomSolution;
 }
 
+SolutionList generateNeighborhood(Solution &solution, vec2d &items, int capacity){
+    SolutionList neighborhood;
+    int workpoint;
 
-
-//generowanie sasiedztwa dla podanego rozwiazania
-tabuList generateNeighbors(tabuSolution &solution, vec2d &items, int capacity){
-    tabuList neighboursSolutions;
-    int item_to_switch = 0;
-
-    //wybranie losowego przedmiotu znajdujacego sie w plecaku
-    while(item_to_switch == 0){
-        int i = random(0, solution.size()-1);
-        if (solution[i] == 1 && i!= previousPoint){
-            previousPoint = i;
-            item_to_switch = i;
+    //wybieram losowy przedmiot z plecaka którego nie sprawdzałem w poprzedniej iteracji programu
+    while(true) {
+        int rand = random(0, solution.size() - 1);
+        if(solution[rand] == 1 && rand != lastWorkPoint){
+            lastWorkPoint = rand;
+            workpoint = rand;
+            break;
         }
     }
 
-    //generowanie losowych sasiadów
+
+    //geneuje sasiedztwo
     for(int i = 0; i < solution.size(); i++){
-        if(solution[i] == 0) {
-            tabuSolution temp = solution;
+        Solution temp = solution;
+        if(i != workpoint){
             temp[i] = 1;
-
-            //DYLEMAT!!!
-            //czy losowi sasiedzi powinni uwzgledniac tez dodanie przedmiotu jezeli bedzie to korzystne?
-            //inaczej liczba przedmiotów w plecaku będzie stała względem ilości w rozwiazaniu wygenerowanym losowo
-
-            /*
-            temp[item_to_switch] = 0;
-            if (calculateKnapsack(items, temp, capacity) != 0) {
-                neighboursSolutions.push_back(temp);
-            }
-             */
-
-
-            if (computeWeight(temp, items) <= capacity) {
-                neighboursSolutions.push_back(temp);
-            }
-
-            else{
-                temp[item_to_switch] = 0;
-                    neighboursSolutions.push_back(temp);
-
+            if(calculateWeight(items,temp) <= capacity){
+                neighborhood.push_back(temp);
+            }else temp[workpoint] = 0;
+            if(calculateWeight(items, temp) <= capacity){
+                neighborhood.push_back(temp);
             }
         }
     }
 
-    return neighboursSolutions;
+    return neighborhood;
 }
 
-
-bool notInTabu(tabuSolution &solution, tabuList &list){
-    for(auto& item: list){
-        if(item == solution){
+bool notInTabu(Solution &solution, SolutionList &tabu){
+    for(int i = 0; i<tabu.size(); i++){
+        if(solution == tabu[i]){
             return false;
         }
     }
     return true;
 }
 
-// glowna funkcja tabu
-void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize) {
-    //utworzenie losowego rozwiazania poczatkowego
-    tabuSolution currentSolution = generateRandomSolution(items, capacity);
 
-    //deklaracja wektora przechowujacego najlepsze rozwiazanie
-    tabuSolution bestSolution = currentSolution;
+Solution backToPoint(SolutionList &list, MovesList &previousMoves, MovesList &itersList){
+    Solution result;
+    for(int i = list.size()-1; i>=0; i--){
+        if(previousMoves[i] != 0){
+            std::cout << "\n\nBrak rozwiazan/Wszystkie rozwiazania w Tabu";
+            std::cout << "\nCofnieto sie do ostatniego punktu z iteracji:" << itersList[i] <<"\nObecne rozwiazanie: ";
+            result = list[i];
+            previousMoves[i]--;
+            break;
+        }
+    }
+    return result;
+}
 
-    //przypisanie wartosci podstawowej do optimum globalnego
+void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize){
+    //tworze poczatkowe losowe rozwiazanie
+    Solution currentSolution = generateRandomSolution(items, capacity);
     globalOptimum = currentSolution;
+    SolutionList tabu;
+    SolutionList previousPoints;
+    MovesList previousMoves;
+    MovesList itersList;
 
-    //zliczenie wartości poczatkowego plecaka losowego
-    int currentFitness = calculateKnapsack(items, currentSolution, capacity);
-
-    //deklaracja zmiennej przechowujacej wartosc najlepzego rozwiazania
-    int bestFitness = currentFitness;
-
-    //deklaracja tablicy tabu
-    tabuList tabu_list;
-
-    //glowna petla
-    for (int iter = 0; iter < iterations; ++iter) {
-        //deklaracja zmiennej przechowującej ilość dostępnych ruchów
-        //potrzebne do zapisania ostatnie punktu z którego można było wykonywać obliczenia
+    for(int iter = 0; iter<iterations; iter++) {
+        //tworze sasiedztwo obecnego rozwiazania
+        SolutionList neighborhood = generateNeighborhood(currentSolution, items, capacity);
+        //licze ilość dostępnych ruchów
         int moves = 0;
 
-        //wygenerowanie listy sasiedztwa do listy tabu
-        tabuList neighbors = generateNeighbors(currentSolution, items, capacity);
-
-        //deklaracja zmiennych przechowujacych nastepne rozwiazania
-        tabuSolution nextSolution;
-        int nextFitness = 0;
-
-
-        //sprawdzenie rozwiazan sasiedztwa
-        for (auto &neighbor: neighbors) {
-
-            //oblcizanie wartosci kazdego sasiada
-            int neighborFitness = calculateKnapsack(items, neighbor, capacity);
-            if (notInTabu(neighbor, tabu_list)) {
+        //przeliczenie rozwiazan sasiedztwa
+        int bestValue = 0;
+        Solution nextSolution = currentSolution;
+        for(int i = 0; i < neighborhood.size(); i++) {
+            if (notInTabu(neighborhood[i], tabu)) {
                 moves++;
-            }
-
-
-            //znajdz najlepsze rozwiązanie z sasiedztwa i sprawdz czy nie jest w tabu
-            if (neighborFitness > nextFitness && notInTabu(neighbor, tabu_list)) {
-
-                nextSolution = neighbor;
-                nextFitness = neighborFitness;
-
-            }
-            if (moves >= 2) {
-                lastPoint = currentSolution;
+                int neighborValue = calculateValue(items, neighborhood[i]);
+                if (neighborValue > bestValue) {
+                    nextSolution = neighborhood[i];
+                    bestValue = neighborValue;
+                }
             }
         }
 
-        //jezeli nie ma wyjsc, cofnij do ostatniego punktu w którym mozna było kontynuować
+        //zapisz ostatni punkt z ktorego mozna kontynuowac obliczenia
+        if (moves > 2) {
+            if(notInTabu(nextSolution, previousPoints)) {
+                //lastPoint = nextSolution;
+                previousPoints.push_back(nextSolution);
+                previousMoves.push_back(moves-1);
+                itersList.push_back(iter);
+            }
+        }
+
+        //ULEPSZ
+        //jezeli nie ma wyjsc, cofnij sie do ostatniego punktu z ktorego mozna bylo kontynuowac
+
         if (moves == 0) {
-            //auto it = find(tabu_list.begin(), tabu_list.end(), lastPoint);
-            // tabu_list.erase(it);
-            std::cout << "\n COFNIETO SIE DO OSTATNIEGO PUNKTU\n";
-            currentSolution = lastPoint;
-            nextFitness = computeValue(currentSolution, items);
-        }
-
-        //przerwanie petli w sytuacji w ktorej realne najlepsze sasiedztwo nie istnieje
-        if (nextFitness != 0) {
-            //przypisz i wypisz rozwiazanie jezeli jest ono lepsze
-            currentSolution = nextSolution;
-            currentFitness = nextFitness;
-
-            std::cout << "\ncurrent fitness: " << currentFitness << " best fitness: " << bestFitness << " iteration: "
-                      << iter;
-
-            //zmierzanie do optimum
-            if (currentFitness > bestFitness) {
-                std::cout << "\nZmierzam do optimum, rozwiazanie w " << iter << " iteracji: ";
+            nextSolution = backToPoint(previousPoints, previousMoves, itersList);
+            if(nextSolution.size() == 0){
+                break;
             }
 
-            //wyjscie z optimum
-            if (currentFitness <= bestFitness) {
-                std::cout << "\nWychodze z optimum, rozwiazanie w " << iter << " iteracji: ";
-            }
-            for (int i = 0; i < bestSolution.size(); i++) {
-                if (bestSolution[i] == 1) {
-                    std::cout << i << " ";
+
+            for(int i = 0; i< nextSolution.size(); i++){
+                if(nextSolution[i] == 1){
+                    std::cout<<i<<" ";
                 }
             }
 
-            bestSolution = currentSolution;
-            bestFitness = currentFitness;
+            std::cout << "\ncurrent value: " << calculateValue(items, nextSolution)
+                      <<" current weight: " << calculateWeight(items, nextSolution);
 
-            std::cout << "\ntotal weight: " << computeWeight(bestSolution, items)
-                      << " total value: " << computeValue(bestSolution, items) << "\n\n";
+            currentSolution = nextSolution;
+        }
 
+        if (moves > 0) {
 
-            //rejestruj najlepsze dotychczasowe rozwiazanie do optimum globalnego
-            int globalFitness = calculateKnapsack(items, globalOptimum, capacity);
-            if (bestFitness > globalFitness) {
-                globalOptimum = bestSolution;
+            if(calculateValue(items, nextSolution) > calculateValue(items, currentSolution)){
+                std::cout<<"\n\nZmierzam do optimum w " << iter << " iteracji\nObecne rozwiazanie: ";
             }
 
-            //dodaj rozwiazanie do tabu
-            tabu_list.push_back(currentSolution);
-
-
-            //wyczysc liste tabu jezeli jest ona za duza
-            if (tabu_list.size() > tabuListSize) {
-                tabu_list.clear();
+            if(calculateValue(items, nextSolution) <= calculateValue(items, currentSolution)){
+                std::cout<<"\n\nWychodze z optimum w " << iter << " iteracji\nObecne rozwiazanie: ";
             }
+
+            for(int i = 0; i< nextSolution.size(); i++){
+                if(nextSolution[i] == 1){
+                    std::cout<<i<<" ";
+                }
+            }
+
+            std::cout << "\ncurrent value: " << calculateValue(items, nextSolution)
+                  <<" current weight: " << calculateWeight(items, nextSolution);
+
+
+            currentSolution = nextSolution;
+            tabu.push_back(currentSolution);
+        }
+
+        if(calculateValue(items, currentSolution) > calculateValue(items, globalOptimum)){
+            globalOptimum = currentSolution;
+        }
+
+        //czyszczenie listy tabu
+        while(tabu.size() >= tabuListSize){
+            std::vector <Solution>::iterator it;
+            it = tabu.begin();
+            tabu.erase(it);
         }
     }
-
 }
 
 int main(int argc, char* argv[]){
-
     srand((unsigned)time(NULL));
 
     //deklaracja wektora przedmiotow
@@ -309,40 +267,33 @@ int main(int argc, char* argv[]){
     file_w.close();
     file_v.close();
 
-    int capacity = 50;
-    int iterations = 400;
-    int tabuSize = 50;
+    int capacity;
+    int iterations;
+    int tabuSize;
 
-    if(argc == 4){
-        int count = 0;
+    if(argc == 4) {
         capacity = std::stoi(argv[1]);
         iterations = std::stoi(argv[2]);
         tabuSize = std::stoi(argv[3]);
-        std::cout << "Wielkosc plecaka: " << capacity << " ilosc iteracji algorytmu: "
-        << iterations << " rozmiar listy tabu: " << tabuSize;
-        std::cout << "\nPlecak poczatkowy \n(waga, wartosc)\n";
-        for (int i = 0; i < items.size(); i++) {
-            std::cout<< i <<"# (" << items[i].weight << ", " << items[i].value << ") "<< "\n";
-            }
-        }else{
-        std::cout<<"NIEPRAWIDLOWE PARAMETRY WEJSCIA";
-        return 0;
+    }else{std::cout<<"NIEPRAWIDLOWE PARAMETRY WEJSCIA";return 0;}
+
+    std::cout << "Wielkosc plecaka: " << capacity << " ilosc iteracji algorytmu: "
+              << iterations << " rozmiar listy tabu: " << tabuSize;
+    std::cout << "\nPlecak poczatkowy \n(waga, wartosc)\n";
+    for (int i = 0; i < items.size(); i++) {
+        std::cout<< i <<"# (" << items[i].weight << ", " << items[i].value << ") "<< "\n";
     }
 
-
-    //deklaracja i wywolanie wektora rozwiazania
     tabuSearch(items, capacity, iterations, tabuSize);
-
-    std::cout << "Wynik: ";
+    std::cout << "\n\nWynik: ";
     for (int i = 0; i < globalOptimum.size(); i++) {
         if (globalOptimum[i] == 1) {
             std::cout << i << " ";
         }
     }
-    std::cout<<"\ntotal weight: " << computeWeight(globalOptimum, items)
-             << " total value: " << computeValue(globalOptimum, items) <<"\n\n";
+    std::cout<<"\nbest weight: " << calculateWeight(items, globalOptimum)
+             << " best value: " << calculateValue(items, globalOptimum) <<"\n\n";
 
-    std::cout << "\n";
 
     return 0;
 }
