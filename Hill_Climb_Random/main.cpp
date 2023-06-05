@@ -12,6 +12,7 @@ struct Item {
 };
 
 using vec2d = std::vector<Item>;
+int previousItem = -1;
 
 // Funkcja obliczająca wartość rozwiązania (suma wartości przedmiotów)
 int computeValue(vec2d &solution) {
@@ -69,22 +70,24 @@ vec2d generateNeighbour(vec2d &items, int capacity){
     vec2d neighbour = items;
     int selected_item = 0;
     int switching_item = 0;
-    int j = 0;
 
     //wybranie przedmiotu startowego
 
-    while(selected_item == 0){
-        j = random(0, items.size()-1);
+    while(true){
+        int rand = random(0, items.size()-1);
         //std::cout<<items[j].in_backpack;
-        if(items[j].in_backpack == 1){
-            selected_item = j;
+        if(items[rand].in_backpack == 1 && rand != previousItem){
+            selected_item = rand;
+            previousItem = rand;
+            break;
         }
     }
     //wybranie przedmiotu do zamiany
-    while(switching_item == 0){
-        j = random(0, items.size()-1);
-        if(items[j].in_backpack == 0){
-            switching_item = j;
+    while(true){
+        int rand = random(0, items.size()-1);
+        if(items[rand].in_backpack == 0){
+            switching_item = rand;
+            break;
         }
     }
 
@@ -117,7 +120,7 @@ vec2d hillClimbingKnapsack(vec2d &items, int capacity, int max_iterations){
 
         if(nextFitness > currentFitness){
             currentSolution = nextSolution;
-            std::cout<<"\nImproved! \n w " << iters << " iteracji programu";
+            std::cout<<"\nImproved! \nW " << iters << " iteracji programu";
             std::cout<<"\nAktualne rozwiazanie: ";
             for (int i = 0; i < currentSolution.size(); i++){
                 if(currentSolution[i].in_backpack == 1){
