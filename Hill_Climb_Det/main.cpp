@@ -14,6 +14,7 @@ struct Item{
 using vec2d = std::vector<Item>;
 using Solution = std::vector<bool>;
 using Neighborhood = std::vector<Solution>;
+int previousItem = -1;
 
 
 //generator liczb losowych na scope (X-Y)
@@ -101,19 +102,24 @@ Solution generateRandomSolution(vec2d &items, int capacity){
 
 Neighborhood generateNeighborhood(Solution &currentSolution, vec2d &items, int capacity){
     Neighborhood neighborhood;
+    int selected_item = 0;
     int item_to_switch = 0;
 
+
+
+
     //wybranie losowego przedmiotu znajdujacego sie w plecaku
-    while(item_to_switch == 0){
-        int i = random(0, currentSolution.size()-1);
-        if (currentSolution[i] == 1){
-            item_to_switch = i;
+    while(true){
+        int rand = random(0, currentSolution.size()-1);
+        if (currentSolution[rand] == 1 && rand != previousItem){
+            item_to_switch = rand;
+            break;
         }
     }
 
     //generowanie losowych sasiadów
     for(int i = 0; i < currentSolution.size(); i++){
-        if(currentSolution[i] == 0) {
+        if(currentSolution[i] == 0 && i != previousItem) {
             Solution temp = currentSolution;
             temp[i] = 1;
 
