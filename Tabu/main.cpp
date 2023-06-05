@@ -143,6 +143,18 @@ Solution backToPoint(SolutionList &list, MovesList &previousMoves, MovesList &it
     return result;
 }
 
+void deleteLastPoint(SolutionList &list, MovesList &previousMoves, MovesList &itersList){
+    //list.erase(list.end());
+    //previousMoves.erase(previousMoves.end());
+    //itersList.erase(itersList.end());
+    for(int i = list.size()-1;i>=0;i--){
+        if (previousMoves[i] != 0){
+            previousMoves[i] = 0;
+            break;
+        }
+    }
+}
+
 void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize){
     //tworze poczatkowe losowe rozwiazanie
     Solution currentSolution = generateRandomSolution(items, capacity);
@@ -152,6 +164,7 @@ void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize){
     MovesList previousMoves;
     MovesList itersList;
 
+    bool NoReturn = false;
     for(int iter = 0; iter<iterations; iter++) {
         //tworze sasiedztwo obecnego rozwiazania
         SolutionList neighborhood = generateNeighborhood(currentSolution, items, capacity);
@@ -168,12 +181,13 @@ void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize){
                 if (neighborValue > bestValue) {
                     nextSolution = neighborhood[i];
                     bestValue = neighborValue;
+                    NoReturn = false;
                 }
             }
         }
 
         //zapisz ostatni punkt z ktorego mozna kontynuowac obliczenia
-        if (moves > 2) {
+        if (moves >= 2) {
             if(notInTabu(nextSolution, previousPoints)) {
                 //lastPoint = nextSolution;
                 previousPoints.push_back(nextSolution);
@@ -182,11 +196,14 @@ void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize){
             }
         }
 
-        //ULEPSZ
-        //jezeli nie ma wyjsc, cofnij sie do ostatniego punktu z ktorego mozna bylo kontynuowac
 
+        //jezeli nie ma wyjsc, cofnij sie do ostatniego punktu z ktorego mozna bylo kontynuowac
         if (moves == 0) {
+            if(NoReturn){
+                deleteLastPoint(previousPoints, previousMoves, itersList);
+            }
             nextSolution = backToPoint(previousPoints, previousMoves, itersList);
+            NoReturn = true;
             if(nextSolution.size() == 0){
                 break;
             }
@@ -204,6 +221,7 @@ void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize){
             currentSolution = nextSolution;
         }
 
+        //jezeli jest wyjscie, weź je i wypisz
         if (moves > 0) {
 
             if(calculateValue(items, nextSolution) > calculateValue(items, currentSolution)){
