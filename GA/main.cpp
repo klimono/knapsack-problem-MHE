@@ -62,6 +62,16 @@ int populationFitness(Population &population){
     return fitness;
 }
 
+void printResult(Genotype &gen) {
+    std::cout << "\nValue: " << calculateValue(gen) <<
+              "\t Weight: " << calculateWeight(gen) << "\t";
+    for (int i = 0; i < gen.size(); i++) {
+        if (gen[i] == 1) {
+            std::cout << i << " ";
+        }
+    }
+}
+
 Genotype generateRandomGenotype(){
     int weight = 0;
     Genotype randomSolution;
@@ -89,7 +99,7 @@ Population generateInitialPopulation(int populationSize){
         initialPopulation.push_back(temp);
     }
 
-    std::cout<<"\nPopulacja poczatkowa : ";
+    std::cout<<"\nPopulacja poczatkowa: ";
     for(int i = 0; i < initialPopulation.size(); i++){
         std::cout<<"\n";
         std::cout<<"#"<<i<< " Value: " << calculateValue(initialPopulation[i])<<
@@ -105,18 +115,75 @@ Population generateInitialPopulation(int populationSize){
     return initialPopulation;
 }
 
+//generowanie sasiedztwa
+Population generateNeighborhood(Genotype &genotype){
+    Population neighborhood;
+    int workpoint;
+
+    //wybieram punkt roboczy dla sasiedztwa
+    while(true){
+        int rand = random(0, genotype.size()-1);
+        if(genotype[rand] == 1){
+            workpoint = rand;
+            break;
+        }
+    }
+
+    //generuje sasiedztwo
+    for(int i = 0; i < genotype.size(); i++){
+        Genotype temp = genotype;
+        if(i != workpoint){
+            temp[i] = 1;
+            if(calculateWeight(temp) <= capacity){
+                neighborhood.push_back(temp);
+            }else {
+                temp[workpoint] = 0;
+                if(calculateWeight(temp) <= capacity){
+                    neighborhood.push_back(temp);
+                }
+            }
+        }
+    }
+    return neighborhood;
+}
+
 //mutacja korzystna wybierająca najlepszego sąsiada rozwiązania
 Genotype mutationOne(Genotype &rabbit){
-    Genotype result;
-
+    Genotype result = rabbit;
+    Population neighborhood = generateNeighborhood(rabbit);
+    int bestValue = 0;
+    for(int i = 0; i < neighborhood.size(); i++){
+        int neighborValue = calculateValue(neighborhood[i]);
+        if(neighborValue > bestValue){
+            result = neighborhood[i];
+            bestValue = neighborValue;
+        }
+    }
     return result;
 }
 
-//mutacja losowa wybierająca dowolnego sąsiada rozwiązania
+//mutacja losowa wyrzucająca losowy przedmiot
+/*
 Genotype mutationTwo(Genotype &rabbit){
-    Genotype result;
+    Genotype result = rabbit;
+    int workpoint;
+
+    while(true){
+     int rand = random(0, rabbit.size()-1);
+     if(rabbit[rand] == 1){
+         workpoint = rand;
+         break;
+     }
+    }
+    result[workpoint] = 0;
+
 
     return result;
+}*/
+
+//mutacja zmieniająca genotyp na nowy, losowy
+Genotype mutationTwo() {
+    return generateRandomGenotype();
 }
 
 //krzyżowanie punktowe
@@ -227,6 +294,10 @@ Roulette generateRoulette(Population &population){
     return populationRoulette;
 }
 
+int roll(Roulette &populationRoulette){
+    return populationRoulette[random(0, populationRoulette.size()-1)];
+}
+
 Population reproduction(Roulette populationRoulette, Population &oldGeneration, int populationSize){
     //nastepne pokolenie
     Population nextGeneration;
@@ -239,8 +310,8 @@ Population reproduction(Roulette populationRoulette, Population &oldGeneration, 
         }
 
         //wybranie Adama i Ewy przez wylosowanie osobników z ruletki
-        Genotype Adam = oldGeneration[random(0, populationRoulette.size()-1)];
-        Genotype Eve = oldGeneration[random(0, populationRoulette.size()-1)];
+        Genotype Adam = oldGeneration[roll(populationRoulette)];
+        Genotype Eve = oldGeneration[roll(populationRoulette)];
 
         //losowanie metody krzyżowania spośród dwóch dostępnych
         bool crossingMethod = random(0, 1);
@@ -264,45 +335,130 @@ Population reproduction(Roulette populationRoulette, Population &oldGeneration, 
         }
     }
 
-    //mutacja z prawdopodobieństwem 1/population_size * 1/2
-    int mutationChance = random(0, 3);
-    int mutationGenotype = random(0, nextGeneration.size()-1);
-    switch (mutationChance) {
-        case 0:
-            //mutacja korzystna
-            nextGeneration[mutationGenotype] = mutationOne(nextGeneration[mutationGenotype]);
-            break;
-        case 1:
-            //mutacja losowa
-            nextGeneration[mutationGenotype] = mutationTwo(nextGeneration[mutationGenotype]);
-            break;
-        default:
-            break;
+    std::cout<<"\nMutacje dla rozwiazan: ";
+    //mutacja z prawdopodobieństwem 1/4 dla każdego osobnika
+    for (int i = 0; i < nextGeneration.size(); i++) {
+        int mutationChance = random(0, 7);
+        switch (mutationChance) {
+            case 0:
+                //mutacja wybierajaca najlepszego sasiada punktu roboczego
+                std::cout<<i<<" ";
+                nextGeneration[i] = mutationOne(nextGeneration[i]);
+                break;
+            case 1:
+                //mutacja wyrzucajaca losowy przedmiot z plecaka
+                //mutacja zamieniająca rozwiazanie na losowe
+                std::cout<<i<<" ";
+                nextGeneration[i] = mutationTwo();
+                break;
+            default:
+                break;
+        }
     }
 
     return nextGeneration;
 }
 
+Population selectElite(Population &population){
+    Population elite;
+    Genotype Adam;
+    int AdamIndex;
+    Genotype Eve;
+    int bestValue = 0;
+
+    for(int i = 0; i<population.size(); i++){
+        if(calculateValue(population[i]) > bestValue){
+            Adam = population[i];
+            AdamIndex = i;
+            bestValue = calculateValue(population[i]);
+        }
+    }
+    elite.push_back(Adam);
+
+
+    bestValue = 0;
+    for(int i = 0; i<population.size(); i++){
+        if(calculateValue(population[i]) > bestValue && i!=AdamIndex){
+            Eve = population[i];
+            bestValue = calculateValue(population[i]);
+        }
+    }
+    elite.push_back(Eve);
+    std::cout<<"\nELITY:";
+    printResult(Adam);
+    printResult(Eve);
+
+
+    return elite;
+}
+
+Population insertElite(Population &population, Population &elite){
+    Population nextPopulation = population;
+    int st_worst;
+    int nd_worst;
+    int worst_value = populationFitness(nextPopulation);
+
+    for(int i = 0; i<nextPopulation.size(); i++){
+        if(calculateValue(nextPopulation[i]) <= worst_value){
+            worst_value = calculateValue(nextPopulation[i]);
+            st_worst = i;
+        }
+    }
+
+    worst_value = populationFitness(nextPopulation);
+    for(int i = 0; i<nextPopulation.size();i++){
+        if(calculateValue(nextPopulation[i]) <= worst_value && i != st_worst){
+            worst_value = calculateValue(nextPopulation[i]);
+            nd_worst = i;
+        }
+    }
+
+
+    if(calculateValue(elite[0]) > calculateValue(nextPopulation[st_worst]))
+    nextPopulation[st_worst] = elite[0];
+
+    if(calculateValue(elite[1]) > calculateValue(nextPopulation[nd_worst]))
+    nextPopulation[nd_worst] = elite[1];
+
+    return nextPopulation;
+}
+
 void geneticAlghoritm(int populationSize, int iterations){
     //deklaracja początkowej populacji
     Population currentPopulation = generateInitialPopulation(populationSize);
-    //deklaracja elity
-    Population elite;
 
     //warunek głównej pętli !!!!
     for(int i = 0; i < iterations; i++){
+
         //tworze ruletkę dla obecnej populacji
         Roulette roulette = generateRoulette(currentPopulation);
 
+        //deklaracja i wybranie elity obecnego rozwiazania
+        Population elite = selectElite(currentPopulation);
+
+        std::cout<<"\n\nPokolenie: "<< i + 1;
         //tworze nowe pokolenie populacji
         Population nextPopulation = reproduction(roulette, currentPopulation, populationSize);
 
-        //dodaje najlepsze rozwiazania z nowej populacji do elity i aktualizuje elite
+        //zamien elite z najgorszymi osobnikami kolejnego rozwiazania
+        nextPopulation = insertElite(nextPopulation, elite);
+
 
         //wypisuje nowe pokolenie
+        for(int i = 0; i < nextPopulation.size(); i++){
+            std::cout<<"\n";
+            std::cout<<"#"<<i<< " Value: " << calculateValue(nextPopulation[i])<<
+                     "\t Weight: " <<calculateWeight(nextPopulation[i]) << "\t";
+            for(int j = 0; j < nextPopulation[i].size(); j++){
+                if(nextPopulation[i][j] == 1){
+                    std::cout<<j<<" ";
+                }
+            }
+
+        }
 
         //akceptuje nowe pokolenie jako obecna populacja
-
+        currentPopulation = nextPopulation;
 
     }
 }
@@ -343,7 +499,7 @@ int main() {
         std::cout<< i <<"# (" << items[i].weight << ", " << items[i].value << ") "<< "\n";
     }
 
-
+    geneticAlghoritm(populationSize, iterations);
 
 
 

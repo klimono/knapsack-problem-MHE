@@ -109,9 +109,12 @@ SolutionList generateNeighborhood(Solution &solution, vec2d &items, int capacity
             temp[i] = 1;
             if(calculateWeight(items,temp) <= capacity){
                 neighborhood.push_back(temp);
-            }else temp[workpoint] = 0;
-            if(calculateWeight(items, temp) <= capacity){
+            }else{
+
+            temp[workpoint] = 0;
+            if(calculateWeight(items, temp) <= capacity) {
                 neighborhood.push_back(temp);
+                }
             }
         }
     }
