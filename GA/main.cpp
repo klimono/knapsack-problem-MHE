@@ -19,6 +19,7 @@ using Roulette = std::vector<int>;
 vec2d items;
 
 int capacity;
+int wantedValue;
 
 //generator liczb losowych na scope (X-Y)
 int random(int min, int max){
@@ -60,6 +61,16 @@ int populationFitness(Population &population){
         fitness += calculateValue(solution);
     }
     return fitness;
+}
+
+int findBest(Population &population){
+    int bestValue = 0;
+    for(const auto & i : population){
+        if(calculateValue(i) > bestValue){
+            bestValue = calculateValue(i);
+        }
+    }
+    return bestValue;
 }
 
 void printResult(Genotype &gen) {
@@ -302,6 +313,7 @@ Population reproduction(Roulette populationRoulette, Population &oldGeneration, 
     //nastepne pokolenie
     Population nextGeneration;
 
+
     //petla dobierajaca pary z obecnego pokolenia
     for(int i = 0; i<oldGeneration.size(); i+=2){
         //osobnik bez pary nie bierze udziału w reprodukcji
@@ -427,9 +439,11 @@ void geneticAlghoritm(int populationSize, int iterations){
     //deklaracja początkowej populacji
     Population currentPopulation = generateInitialPopulation(populationSize);
 
-    //warunek głównej pętli !!!!
-    for(int i = 0; i < iterations; i++){
+    //najlepsza wartosc
+    int bestValue = 0;
 
+    //warunek głównej pętli !!!!
+    for(int i = 0; i < iterations && bestValue < wantedValue; i++){
         //tworze ruletkę dla obecnej populacji
         Roulette roulette = generateRoulette(currentPopulation);
 
@@ -442,7 +456,6 @@ void geneticAlghoritm(int populationSize, int iterations){
 
         //zamien elite z najgorszymi osobnikami kolejnego rozwiazania
         nextPopulation = insertElite(nextPopulation, elite);
-
 
         //wypisuje nowe pokolenie
         for(int i = 0; i < nextPopulation.size(); i++){
@@ -460,10 +473,13 @@ void geneticAlghoritm(int populationSize, int iterations){
         //akceptuje nowe pokolenie jako obecna populacja
         currentPopulation = nextPopulation;
 
+        //przerywam obliczenia po dotarciu do oczekiwanego pułapu
+        bestValue = findBest(currentPopulation);
+
     }
 }
 
-int main() {
+int main(int argc, char* argv[]){
     srand((unsigned)time(NULL));
 
     //deklaracja wektora przedmiotow
@@ -488,9 +504,20 @@ int main() {
     file_w.close();
     file_v.close();
 
+
+
     capacity = 50;
+    wantedValue = 105;
     int populationSize = 14;
     int iterations = 50;
+
+    if(argc == 5){
+        capacity = std::stoi(argv[1]);
+        wantedValue = std::stoi(argv[2]);
+        populationSize = std::stoi(argv[3]);
+        iterations = std::stoi(argv[4]);
+    }else{std::cout<<"NIEPRAWIDLOWE PARAMETRY WEJSCIA";return 0;}
+
 
 
     std::cout << "Wielkosc plecaka: " << capacity;
