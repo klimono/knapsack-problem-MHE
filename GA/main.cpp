@@ -21,6 +21,12 @@ vec2d items;
 int capacity;
 int wantedValue;
 
+int condition;
+int crossing_method;
+int mutation_method;
+
+
+
 //generator liczb losowych na scope (X-Y)
 int random(int min, int max){
     if (min > max){
@@ -326,13 +332,13 @@ Population reproduction(Roulette populationRoulette, Population &oldGeneration, 
         Genotype Eve = oldGeneration[roll(populationRoulette)];
 
         //losowanie metody krzyżowania spośród dwóch dostępnych
-        bool crossingMethod = random(0, 1);
+        //bool crossingMethod = random(0, 1);
 
         //potomstwo
         Population offspring;
 
         //zastosowanie krzyżowania
-        switch(crossingMethod){
+        switch(crossing_method){
             case 0:
                 offspring = crossingSolutionOne(Adam, Eve);
                 break;
@@ -350,8 +356,8 @@ Population reproduction(Roulette populationRoulette, Population &oldGeneration, 
     std::cout<<"\nMutacje dla rozwiazan: ";
     //mutacja z prawdopodobieństwem 1/4 dla każdego osobnika
     for (int i = 0; i < nextGeneration.size(); i++) {
-        int mutationChance = random(0, 7);
-        switch (mutationChance) {
+        //int mutationChance = random(0, 7);
+        switch (mutation_method) {
             case 0:
                 //mutacja wybierajaca najlepszego sasiada punktu roboczego
                 std::cout<<i<<" ";
@@ -443,7 +449,18 @@ void geneticAlghoritm(int populationSize, int iterations){
     int bestValue = 0;
 
     //warunek głównej pętli !!!!
-    for(int i = 0; i < iterations && bestValue < wantedValue; i++){
+    for(int i = 0; ; i++){
+
+
+        if(condition == 0){
+            if(i == iterations) break;
+        }
+
+        if(condition == 1){
+            if (bestValue > wantedValue) break;
+        }
+
+
         //tworze ruletkę dla obecnej populacji
         Roulette roulette = generateRoulette(currentPopulation);
 
@@ -511,11 +528,15 @@ int main(int argc, char* argv[]){
     int populationSize = 14;
     int iterations = 50;
 
-    if(argc == 5){
+    if(argc == 8){
         capacity = std::stoi(argv[1]);
         wantedValue = std::stoi(argv[2]);
         populationSize = std::stoi(argv[3]);
         iterations = std::stoi(argv[4]);
+        condition = std::stoi(argv[5]);
+        crossing_method = std::stoi(argv[6]);
+        mutation_method = std::stoi(argv[7]);
+
     }else{std::cout<<"NIEPRAWIDLOWE PARAMETRY WEJSCIA";return 0;}
 
 

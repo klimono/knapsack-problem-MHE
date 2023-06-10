@@ -11,10 +11,13 @@ struct Item{
     bool in_backpack = 0;
 };
 
+int capacity;
+
 using vec2d = std::vector<Item>;
 using Solution = std::vector<bool>;
 using Neighborhood = std::vector<Solution>;
-int previousItem = -1;
+int item_to_delete = 0;
+Solution initial_solution;
 
 
 //generator liczb losowych na scope (X-Y)
@@ -30,7 +33,7 @@ int random(int min, int max){
 }
 
 //funkcja sprawdzajaca poprawnosc plecaka i zwracajaca jego wartosc
-int calculateKnapsack(vec2d items, Solution &solution, int capacity) {
+int calculateKnapsack(Solution &solution, vec2d items) {
     int value = 0;
     int weight = 0;
 
@@ -102,12 +105,41 @@ Solution generateRandomSolution(vec2d &items, int capacity){
 
 Neighborhood generateNeighborhood(Solution &currentSolution, vec2d &items, int capacity){
     Neighborhood neighborhood;
-    int selected_item = 0;
-    int item_to_switch = 0;
+    Solution solution = currentSolution;
+    /*
+    while(true){
+        int rand = random(0, solution.size()-1);
+        if (solution[rand] == 1){
+            solution[rand] = 0;
+            break;
+        }
+    }
+    */
+    while(true){
+        item_to_delete++;
+        if(item_to_delete == solution.size()-1){
+            item_to_delete = 0;
+        }
+        if(solution[item_to_delete] == 1){
+            solution[item_to_delete] = 0;
+            break;
+        }
+    }
+    solution[item_to_delete] = 0;
+
+    for(int i = 0; i < solution.size(); i++) {
+        Solution temp = solution;
+        if(solution[i] == 0){
+            temp[i] = 1;
+        }else {
+            temp[i] = 0;
+        }
+        neighborhood.push_back(temp);
+    }
 
 
 
-
+/*
     //wybranie losowego przedmiotu znajdujacego sie w plecaku
     while(true){
         int rand = random(0, currentSolution.size()-1);
@@ -127,12 +159,12 @@ Neighborhood generateNeighborhood(Solution &currentSolution, vec2d &items, int c
             //czy losowi sasiedzi powinni uwzgledniac tez dodanie przedmiotu jezeli bedzie to korzystne?
             //inaczej liczba przedmiotów w plecaku będzie stała względem ilości w rozwiazaniu wygenerowanym losowo
 
-            /*
+
             temp[item_to_switch] = 0;
             if (calculateKnapsack(items, temp, capacity) != 0) {
                 neighboursSolutions.push_back(temp);
             }
-             */
+
 
 
             if (calculateKnapsack(items, temp, capacity) != 0) {
@@ -148,6 +180,7 @@ Neighborhood generateNeighborhood(Solution &currentSolution, vec2d &items, int c
         }
     }
 
+    */
     return neighborhood;
 
 }
@@ -155,6 +188,7 @@ Neighborhood generateNeighborhood(Solution &currentSolution, vec2d &items, int c
 void hillClimbingKnapsack(vec2d &items, int capaciy, int maxIterations){
     //utworzenie losowego rozwiazania poczatkowego
     Solution currentSolution = generateRandomSolution(items, capaciy);
+    initial_solution = currentSolution;
 
     //glowna petla
     for(int iters = 0; iters < maxIterations; iters++){
@@ -162,7 +196,8 @@ void hillClimbingKnapsack(vec2d &items, int capaciy, int maxIterations){
 
         Solution bestSolution = currentSolution;
         for(auto& neighbor: neighborhood){
-            if(computeValue(neighbor, items) > computeValue(bestSolution, items)){
+
+            if(computeValue(neighbor, items) > computeValue(bestSolution, items) && computeWeight(neighbor, items) <= capaciy){
                 bestSolution = neighbor;
             }
         }
@@ -207,7 +242,7 @@ int main(int argc, char* argv[]){
     file_w.close();
     file_v.close();
     if(argc == 3) {
-        int capacity = std::stoi(argv[1]);
+        capacity = std::stoi(argv[1]);
         int iterations = std::stoi(argv[2]);
 
         std::cout << "Wielkosc plecaka: " << capacity << " ilosc iteracji algorytmu: "

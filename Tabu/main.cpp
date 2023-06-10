@@ -68,11 +68,11 @@ Solution generateRandomSolution(vec2d &items, int capacity){
     for(int i = 0; i < items.size();){
         int rand = random(0, items.size()-1);
         if(randomSolution[rand] == 0){
-               i++;
-               if(weight + items[rand].weight < capacity){
-                   randomSolution[rand] = 1;
-                   weight += items[rand].weight;
-               }
+            i++;
+            if(weight + items[rand].weight < capacity){
+                randomSolution[rand] = 1;
+                weight += items[rand].weight;
+            }
         }
     }
 
@@ -89,35 +89,20 @@ Solution generateRandomSolution(vec2d &items, int capacity){
 
 SolutionList generateNeighborhood(Solution &solution, vec2d &items, int capacity){
     SolutionList neighborhood;
-    int workpoint;
-
-    //wybieram losowy przedmiot z plecaka którego nie sprawdzałem w poprzedniej iteracji programu
-    while(true) {
-        int rand = random(0, solution.size() - 1);
-        if(solution[rand] == 1 && rand != lastWorkPoint){
-            lastWorkPoint = rand;
-            workpoint = rand;
-            break;
-        }
-    }
 
 
-    //geneuje sasiedztwo
     for(int i = 0; i < solution.size(); i++){
         Solution temp = solution;
-        if(i != workpoint){
+        if(temp[i] == 0){
             temp[i] = 1;
-            if(calculateWeight(items,temp) <= capacity){
-                neighborhood.push_back(temp);
-            }else{
-
-            temp[workpoint] = 0;
-            if(calculateWeight(items, temp) <= capacity) {
-                neighborhood.push_back(temp);
-                }
-            }
+        }else {temp[i] = 0;}
+        if(calculateWeight(items, temp) <= capacity) {
+            neighborhood.push_back(temp);
         }
     }
+
+
+
 
     return neighborhood;
 }
@@ -242,7 +227,7 @@ void tabuSearch(vec2d &items, int capacity, int iterations, int tabuListSize){
             }
 
             std::cout << "\ncurrent value: " << calculateValue(items, nextSolution)
-                  <<" current weight: " << calculateWeight(items, nextSolution);
+                      <<" current weight: " << calculateWeight(items, nextSolution);
 
 
             currentSolution = nextSolution;
